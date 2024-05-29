@@ -1,0 +1,215 @@
+using System;
+using System.Data;
+using System.Data.SqlClient;
+
+
+using ADO.NET
+================
+class Program
+{
+    static void Main()
+    {
+        // Define the connection string
+        string connectionString = "Data Source=YourServerName;Initial Catalog=YourDatabaseName;User ID=YourUsername;Password=YourPassword";
+
+        // Create a SqlConnection object
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                // Open the connection
+                connection.Open();
+                Console.WriteLine("Connection opened successfully.");
+
+                // Create a SqlCommand object
+                string query = "SELECT * FROM YourTableName";
+                SqlCommand command = new SqlCommand(query, connection);
+
+                // Execute the command and read the data
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        // Access data using reader["ColumnName"]
+                        Console.WriteLine($"{reader["ColumnName"]}");
+                    }
+                }
+
+                // Close the connection (automatically done by using statement)
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+    }
+}
+
+================================================================================================
+
+Connecting to a database using Entity Framework (EF) in an ASP.NET MVC application involves several steps. Here's a detailed guide:
+
+Step 1: Install Entity Framework
+First, ensure you have Entity Framework installed. You can do this via NuGet Package Manager.
+
+Open your project in Visual Studio.
+Right-click on your project in the Solution Explorer and select "Manage NuGet Packages."
+Search for "Entity Framework" and install it.
+Alternatively, you can use the Package Manager Console:
+
+bash
+Copy code
+Install-Package EntityFramework
+=================================
+Step 2: Create the Model Classes
+Define your data models (entity classes). Each class will represent a table in your database.
+
+csharp
+Copy code
+=================
+public class Student
+{
+    public int StudentID { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public DateTime EnrollmentDate { get; set; }
+}
+===============================
+Step 3: Create the DbContext Class
+Create a DbContext class that represents a session with the database, allowing you to query and save data.
+
+csharp
+Copy code
+==============
+using System.Data.Entity;
+
+public class SchoolContext : DbContext
+{
+    public SchoolContext() : base("name=SchoolContext") 
+    { 
+    }
+
+    public DbSet<Student> Students { get; set; }
+}
+=================================
+Step 4: Configure the Connection String
+Add a connection string to your Web.config file. This tells Entity Framework how to connect to your database.
+
+xml
+Copy code
+===============
+<configuration>
+  <connectionStrings>
+    <add name="SchoolContext" 
+         connectionString="Data Source=YourServerName;Initial Catalog=YourDatabaseName;Integrated Security=True" 
+         providerName="System.Data.SqlClient" />
+  </connectionStrings>
+</configuration>
+
+Data Source=YourServerName: Replace YourServerName with your SQL Server instance name.
+Initial Catalog=YourDatabaseName: Replace YourDatabaseName with the name of your database.
+Integrated Security=True: Uses Windows authentication. If using SQL Server authentication, replace with User ID=YourUsername;Password=YourPassword.
+Step 5: Create the Database
+Entity Framework can create the database for you based on your model classes. You can use migrations to manage this process.
+
+Enable migrations:
+===========================
+bash
+
+===================
+Enable-Migrations
+
+
+Add a migration:
+bash
+
+=====================
+Add-Migration InitialCreate
+Update the database:
+
+bash
+
+======================
+Update-Database
+=================================
+Step 6: Use the DbContext in Your Application
+You can now use your DbContext in your controllers to interact with the database.
+
+csharp
+Copy code
+=========================================================
+public class StudentsController : Controller
+{
+    private SchoolContext db = new SchoolContext();
+
+    // GET: Students
+    public ActionResult Index()
+    {
+        return View(db.Students.ToList());
+    }
+
+    // GET: Students/Details/5
+    public ActionResult Details(int id)
+    {
+        Student student = db.Students.Find(id);
+        if (student == null)
+        {
+            return HttpNotFound();
+        }
+        return View(student);
+    }
+
+    // Additional actions for Create, Edit, Delete, etc.
+}
+Example Views
+Create views to display data. For example, Index.cshtml to list students:
+
+html
+==============================================
+@model IEnumerable<YourNamespace.Models.Student>
+
+<h2>Students</h2>
+
+<table class="table">
+    <tr>
+        <th>@Html.DisplayNameFor(model => model.FirstName)</th>
+        <th>@Html.DisplayNameFor(model => model.LastName)</th>
+        <th>@Html.DisplayNameFor(model => model.EnrollmentDate)</th>
+        <th></th>
+    </tr>
+
+@foreach (var item in Model) {
+    <tr>
+        <td>@Html.DisplayFor(modelItem => item.FirstName)</td>
+        <td>@Html.DisplayFor(modelItem => item.LastName)</td>
+        <td>@Html.DisplayFor(modelItem => item.EnrollmentDate)</td>
+        <td>
+            @Html.ActionLink("Edit", "Edit", new { id = item.StudentID }) |
+            @Html.ActionLink("Details", "Details", new { id = item.StudentID }) |
+            @Html.ActionLink("Delete", "Delete", new { id = item.StudentID })
+        </td>
+    </tr>
+}
+</table>
+==========================================================================
+Summary
+Install Entity Framework via NuGet.
+Create model classes to represent database tables.
+Create a DbContext class to manage the database connection and operations.
+Configure the connection string in Web.config.
+Create and apply migrations to set up the database schema.
+Use the DbContext in your controllers to perform CRUD operations.
+Create views to display and interact with the data.
+This approach provides a solid foundation for working with databases in an ASP.NET MVC application using Entity Framework.
+
+================================================
+asp.net db connect
+======================
+
+
+
+
+
+
+
+

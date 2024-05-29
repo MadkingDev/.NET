@@ -1,0 +1,302 @@
+Asp.net
+=======
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="WebApp.Default" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Employee Management</title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div>
+            <h2>Employee Management</h2>
+            <table>
+                <tr>
+                    <td>EmpID:</td>
+                    <td><asp:TextBox ID="txtEmpID" runat="server"></asp:TextBox></td>
+                </tr>
+                <tr>
+                    <td>Name:</td>
+                    <td><asp:TextBox ID="txtName" runat="server"></asp:TextBox></td>
+                </tr>
+                <tr>
+                    <td>DOB:</td>
+                    <td><asp:TextBox ID="txtDOB" runat="server"></asp:TextBox></td>
+                </tr>
+                <tr>
+                    <td>Department:</td>
+                    <td><asp:TextBox ID="txtDepartment" runat="server"></asp:TextBox></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <asp:Button ID="btnInsert" Text="Insert" runat="server" OnClick="btnInsert_Click" />
+                        <asp:Button ID="btnUpdate" Text="Update" runat="server" OnClick="btnUpdate_Click" />
+                        <asp:Button ID="btnDelete" Text="Delete" runat="server" OnClick="btnDelete_Click" />
+                        <asp:Button ID="btnClear" Text="Clear" runat="server" OnClick="btnClear_Click" />
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <asp:Label ID="lblMessage" runat="server" ForeColor="Red"></asp:Label>
+                    </td>
+                </tr>
+            </table>
+            <asp:GridView ID="GridView1" runat="server" AutoGenerateColumns="False" OnSelectedIndexChanged="GridView1_SelectedIndexChanged">
+                <Columns>
+                    <asp:BoundField DataField="EmpID" HeaderText="EmpID" ReadOnly="True" />
+                    <asp:BoundField DataField="Name" HeaderText="Name" />
+                    <asp:BoundField DataField="DOB" HeaderText="DOB" />
+                    <asp:BoundField DataField="Department" HeaderText="Department" />
+                </Columns>
+            </asp:GridView>
+        </div>
+    </form>
+</body>
+</html>
+
+======================================================================================================================
+
+c#
+==
+
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI;
+
+namespace WebApp
+{
+    public partial class Default : Page
+    {
+        string connectionString = ConfigurationManager.ConnectionStrings["EmployeeDB"].ConnectionString;
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                LoadData();
+            }
+        }
+
+        private void LoadData()
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand cmd = new SqlCommand("SELECT * FROM Employees", con);
+                SqlDataAdapter sda = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                sda.Fill(dt);
+                GridView1.DataSource = dt;
+                GridView1.DataBind();
+            }
+        }
+
+
+	private void Generatesiteno()
+	{
+	//TextBox sitecodeftr = (TextBox)e.Row.FindControl("txtftrsitecode");
+	TextBox sitecodeftr = (TextBox)gvDetails.FooterRow.FindControl("txtftrsitecode");
+	DataTable slcnt = obj.get_site_serial_count();
+	int slcnt1 = slcnt.Rows.Count + 1;
+	string sno = "5" + slcnt. ToString("000");
+	sitecodeftr.Text = sno;
+	sitecodeftr. ForeColor = System.Drawing. Color Black;
+	}
+
+	private string GenerateNextEmpID()
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand cmd = new SqlCommand("SELECT EmpID FROM Employees", con);
+                con.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+                int maxNumber = 0;
+
+                while (reader.Read())
+                {
+                    string empID = reader["EmpID"].ToString();
+                    if (empID.StartsWith("Empid"))
+                    {
+                        int number;
+                        if (int.TryParse(empID.Substring(5), out number))
+                        {
+                            if (number > maxNumber)
+                            {
+                                maxNumber = number;
+                            }
+                        }
+                    }
+                }
+
+                return "Empid" + (maxNumber + 1);
+            }
+        }
+
+
+        protected void btnInsert_Click(object sender, EventArgs e)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand cmd = new SqlCommand("INSERT INTO Employees (Name, DOB, Department) VALUES (@Name, @DOB, @Department)", con);
+                cmd.Parameters.AddWithValue("@Name", txtName.Text);
+                cmd.Parameters.AddWithValue("@DOB", DateTime.Parse(txtDOB.Text));
+                cmd.Parameters.AddWithValue("@Department", txtDepartment.Text);
+                con.Open();
+                cmd.ExecuteNonQuery();
+                con.Close();
+                LoadData();
+                ClearFields();
+                lblMessage.Text = "Record inserted successfully.";
+                lblMessage.ForeColor = System.Drawing.Color.Green;
+            }
+        }
+
+
+	 protected void btnInsert_Click(object sender, EventArgs e)
+        {
+            string newEmpID = GenerateNextEmpID();
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand checkCmd = new SqlCommand("SELECT COUNT(*) FROM Employees WHERE EmpID=@EmpID", con);
+                checkCmd.Parameters.AddWithValue("@EmpID", newEmpID);
+                con.Open();
+                int count = (int)checkCmd.ExecuteScalar();
+                con.Close();
+
+                if (count > 0)
+                {
+                    lblMessage.Text = "Generated EmpID already exists. Please try again.";
+                    lblMessage.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+
+                SqlCommand cmd = new SqlCommand("INSERT INTO Employees (EmpID, Name, DOB, Department) VALUES (@EmpID, @Name, @DOB, @Department)", con);
+                cmd.Parameters.AddWithValue("@EmpID", newEmpID);
+                cmd.Parameters.AddWithValue("@Name", txtName.Text);
+                cmd.Parameters.AddWithValue("@DOB", DateTime.Parse(txtDOB.Text));
+                cmd.Parameters.AddWithValue("@Department", txtDepartment.Text);
+                con.Open();
+                cmd.ExecuteNonQuery();
+                con.Close();
+                LoadData();
+                ClearFields();
+                lblMessage.Text = "Record inserted successfully.";
+                lblMessage.ForeColor = System.Drawing.Color.Green;
+            }
+        }
+
+
+        protected void btnUpdate_Click(object sender, EventArgs e)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand cmd = new SqlCommand("UPDATE Employees SET Name=@Name, DOB=@DOB, Department=@Department WHERE EmpID=@EmpID", con);
+                cmd.Parameters.AddWithValue("@EmpID", int.Parse(txtEmpID.Text));
+                cmd.Parameters.AddWithValue("@Name", txtName.Text);
+                cmd.Parameters.AddWithValue("@DOB", DateTime.Parse(txtDOB.Text));
+                cmd.Parameters.AddWithValue("@Department", txtDepartment.Text);
+                con.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+                con.Close();
+                if (rowsAffected > 0)
+                {
+                    LoadData();
+                    ClearFields();
+                    lblMessage.Text = "Record updated successfully.";
+                    lblMessage.ForeColor = System.Drawing.Color.Green;
+                }
+                else
+                {
+                    lblMessage.Text = "Invalid EmpID.";
+                    lblMessage.ForeColor = System.Drawing.Color.Red;
+                }
+            }
+        }
+
+        protected void btnDelete_Click(object sender, EventArgs e)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                SqlCommand checkCmd = new SqlCommand("SELECT COUNT(*) FROM Employees WHERE EmpID=@EmpID", con);
+                checkCmd.Parameters.AddWithValue("@EmpID", int.Parse(txtEmpID.Text));
+                con.Open();
+                int count = (int)checkCmd.ExecuteScalar();
+                if (count > 0)
+                {
+                    SqlCommand cmd = new SqlCommand("DELETE FROM Employees WHERE EmpID=@EmpID", con);
+                    cmd.Parameters.AddWithValue("@EmpID", int.Parse(txtEmpID.Text));
+                    cmd.ExecuteNonQuery();
+                    lblMessage.Text = "Record deleted successfully.";
+                    lblMessage.ForeColor = System.Drawing.Color.Green;
+                }
+                else
+                {
+                    lblMessage.Text = "Invalid EmpID.";
+                    lblMessage.ForeColor = System.Drawing.Color.Red;
+                }
+                con.Close();
+                LoadData();
+                ClearFields();
+            }
+        }
+
+        protected void btnClear_Click(object sender, EventArgs e)
+        {
+            ClearFields();
+            lblMessage.Text = string.Empty;
+        }
+
+        private void ClearFields()
+        {
+            txtEmpID.Text = string.Empty;
+            txtName.Text = string.Empty;
+            txtDOB.Text = string.Empty;
+            txtDepartment.Text = string.Empty;
+        }
+
+        protected void GridView1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            GridViewRow row = GridView1.SelectedRow;
+            txtEmpID.Text = row.Cells[1].Text;
+            txtName.Text = row.Cells[2].Text;
+            txtDOB.Text = row.Cells[3].Text;
+            txtDepartment.Text = row.Cells[4].Text;
+        }
+    }
+}
+====================================================================================
+
+connection string
+======================
+
+<configuration>
+  <connectionStrings>
+    <add name="EmployeeDB" connectionString="Data Source=.;Initial Catalog=EmployeeDB;Integrated Security=True" providerName="System.Data.SqlClient" />
+  </connectionStrings>
+  ...
+</configuration>
+========================================================
+
+string connectionString = ConfigurationManager.ConnectionStrings["EmployeeDB"].ConnectionString;
+
+================================================
+
+CREATE DATABASE EmployeeDB;
+GO
+
+USE EmployeeDB;
+GO
+
+CREATE TABLE Employees (
+    ID INT PRIMARY KEY IDENTITY(1,1),
+    EMPID NVARCHAR(50),
+    Name NVARCHAR(50),
+    DOB DATE,
+    Department NVARCHAR(50)
+);
+
+================================================
